@@ -49,6 +49,10 @@ terminal-inspector shelldon
 
 # Only zellij sessions
 terminal-inspector zellij
+
+# Print canonical URI for current terminal location
+terminal-inspector where
+# => terminal://iterm2/window:1229/tab:3/tmux:main/window:1/pane:0
 ```
 
 ## JSON Output

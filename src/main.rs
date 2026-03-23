@@ -1,3 +1,4 @@
+mod locate;
 mod process;
 mod shelldon;
 mod terminals;
@@ -30,6 +31,8 @@ enum Command {
     Shelldon,
     /// Detect zellij sessions
     Zellij,
+    /// Print a canonical URI for the current terminal location
+    Where,
     /// Show everything (default)
     All,
 }
@@ -38,6 +41,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let command = cli.command.unwrap_or(Command::All);
+
+    if matches!(command, Command::Where) {
+        let uri = locate::locate()?;
+        println!("{}", uri);
+        return Ok(());
+    }
 
     let empty = InspectorOutput {
         terminals: vec![],
@@ -63,6 +72,7 @@ fn main() -> Result<()> {
             zellij: zellij::detect()?,
             ..empty
         },
+        Command::Where => unreachable!("handled above"),
         Command::All => InspectorOutput {
             terminals: terminals::detect_all()?,
             tmux: tmux::detect()?,
