@@ -1,6 +1,6 @@
 # workspace-inspector
 
-A Rust library and CLI tool to inspect running terminal emulators and multiplexer sessions. Outputs JSON by default for easy integration with other tools.
+A Rust library and CLI tool to inspect your workspace — terminal emulators, multiplexer sessions, and more. Outputs JSON by default for easy integration with other tools.
 
 ## Supported
 
@@ -24,6 +24,12 @@ A Rust library and CLI tool to inspect running terminal emulators and multiplexe
 | Shelldon | Yes (via MCP) | Yes | Yes | — | — | — |
 
 ## Install
+
+```sh
+cargo install workspace-inspector
+```
+
+Or from source:
 
 ```sh
 cargo install --path .
@@ -50,7 +56,7 @@ workspace-inspector shelldon
 # Only zellij sessions
 workspace-inspector zellij
 
-# Print canonical URI for current terminal location
+# Print canonical URI for current workspace location
 workspace-inspector where
 # => workspace://iterm2/window:1229/tab:3/tmux:main/window:1/pane:0
 ```
@@ -125,7 +131,7 @@ workspace-inspector = { git = "https://github.com/caladriuslogic/workspace-inspe
 ```rust
 use workspace_inspector::{locate, inspect_all, inspect_tmux};
 
-// Get a canonical URI for the current terminal location
+// Get a canonical URI for the current workspace location
 let uri = locate()?;
 // => "workspace://iterm2/window:1229/tab:3/tmux:main/window:1/pane:0"
 
