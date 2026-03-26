@@ -1,6 +1,6 @@
 [package]
 name = "workspace-inspector"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["John Morrow <johnmorrow@users.noreply.github.com>"]
 description = "CLI tool to inspect running terminal emulators, multiplexer sessions, and browser tabs"

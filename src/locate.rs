@@ -358,7 +358,16 @@ fn detect_shelldon() -> Result<Option<Vec<String>>> {
                             .get("session_id")
                             .and_then(|v| v.as_str())
                             .unwrap_or("unknown");
-                        return Ok(Some(vec![format!("shelldon:{}", session_id)]));
+                        let mut segments = vec![format!("shelldon:{}", session_id)];
+
+                        if let Ok(pane_id) = std::env::var("SHELLDON_PANE_ID") {
+                            segments.push(format!("pane:{}", pane_id));
+                        }
+                        if let Ok(tab_id) = std::env::var("SHELLDON_TAB_ID") {
+                            segments.push(format!("tab:{}", tab_id));
+                        }
+
+                        return Ok(Some(segments));
                     }
                 }
             }
@@ -374,3 +383,4 @@ fn detect_shelldon() -> Result<Option<Vec<String>>> {
 
     Ok(Some(vec!["shelldon".into()]))
 }
+
