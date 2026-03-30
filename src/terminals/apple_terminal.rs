@@ -8,14 +8,18 @@ const APPLESCRIPT: &str = r#"
 tell application "Terminal"
     set output to ""
     repeat with w in windows
-        set wid to id of w
-        repeat with t in tabs of w
-            set ttyVal to tty of t
-            set titleVal to custom title of t
-            set colsVal to number of columns of t
-            set rowsVal to number of rows of t
-            set output to output & wid & "\t" & titleVal & "\t" & ttyVal & "\t" & colsVal & "\t" & rowsVal & "\n"
-        end repeat
+        try
+            set wid to id of w
+            repeat with t in tabs of w
+                try
+                    set ttyVal to tty of t
+                    set titleVal to custom title of t
+                    set colsVal to number of columns of t
+                    set rowsVal to number of rows of t
+                    set output to output & wid & "\t" & titleVal & "\t" & ttyVal & "\t" & colsVal & "\t" & rowsVal & "\n"
+                end try
+            end repeat
+        end try
     end repeat
     return output
 end tell

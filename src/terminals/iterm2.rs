@@ -8,18 +8,24 @@ const APPLESCRIPT: &str = r#"
 tell application "iTerm2"
     set output to ""
     repeat with w in windows
-        set wid to id of w
-        set tabIdx to 0
-        repeat with t in tabs of w
-            set tabIdx to tabIdx + 1
-            repeat with s in sessions of t
-                set ttyVal to tty of s
-                set titleVal to name of s
-                set colsVal to columns of s
-                set rowsVal to rows of s
-                set output to output & wid & "\t" & tabIdx & "\t" & titleVal & "\t" & ttyVal & "\t" & colsVal & "\t" & rowsVal & "\n"
+        try
+            set wid to id of w
+            set tabIdx to 0
+            repeat with t in tabs of w
+                try
+                    set tabIdx to tabIdx + 1
+                    repeat with s in sessions of t
+                        try
+                            set ttyVal to tty of s
+                            set titleVal to name of s
+                            set colsVal to columns of s
+                            set rowsVal to rows of s
+                            set output to output & wid & "\t" & tabIdx & "\t" & titleVal & "\t" & ttyVal & "\t" & colsVal & "\t" & rowsVal & "\n"
+                        end try
+                    end repeat
+                end try
             end repeat
-        end repeat
+        end try
     end repeat
     return output
 end tell
