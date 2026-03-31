@@ -12,6 +12,8 @@ mod iterm2;
 mod gnome_terminal;
 
 #[cfg(target_os = "windows")]
+mod cmd;
+#[cfg(target_os = "windows")]
 mod powershell;
 
 use anyhow::Result;
@@ -57,6 +59,10 @@ pub fn detect_all() -> Result<Vec<TerminalEmulator>> {
 
     #[cfg(target_os = "windows")]
     {
+        if let Ok(Some(t)) = cmd::detect() {
+            terminals.push(t);
+        }
+
         if let Ok(Some(t)) = powershell::detect() {
             terminals.push(t);
         }
