@@ -94,6 +94,7 @@ pub fn detect() -> Result<Option<TerminalEmulator>> {
 
                                 tabs.push(TerminalTab {
                                     title: title.clone(),
+                                    uri: None,
                                     tty: None,
                                     shell_pid: fg_pid,
                                     shell: cmd,

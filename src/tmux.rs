@@ -117,6 +117,7 @@ fn list_panes(target: &str) -> Result<Vec<TmuxPane>> {
         }
 
         panes.push(TmuxPane {
+            uri: None,
             index: parts[0].parse().unwrap_or(0),
             pid: parts[1].parse().unwrap_or(0),
             command: parts[2].to_string(),

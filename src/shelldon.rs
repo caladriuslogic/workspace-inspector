@@ -112,6 +112,7 @@ fn query_panes(info: &DiscoveryInfo) -> Result<Vec<ShelldonPane>> {
                     .unwrap_or_default()
             })
             .map(|t| ShelldonTab {
+                uri: None,
                 tab_id: t
                     .get("tab_id")
                     .and_then(|v| v.as_str())

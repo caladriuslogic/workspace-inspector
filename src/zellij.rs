@@ -183,6 +183,7 @@ fn list_panes(session: &str) -> Result<Vec<ZellijPane>> {
             ZellijPane {
                 tab_id,
                 pane_id,
+                uri: None,
                 title,
                 command,
                 cwd,

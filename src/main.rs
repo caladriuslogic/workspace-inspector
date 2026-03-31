@@ -23,6 +23,8 @@ enum Command {
     Shelldon,
     /// Detect zellij sessions
     Zellij,
+    /// Detect running IDEs (Xcode, etc.)
+    Ides,
     /// Print a canonical URI for the current terminal location
     Where,
     /// Show everything (default)
@@ -40,12 +42,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let empty = InspectorOutput {
-        terminals: vec![],
-        tmux: vec![],
-        shelldon: vec![],
-        zellij: vec![],
-    };
+    let empty = InspectorOutput::empty();
 
     let output = match command {
         Command::Terminals => InspectorOutput {
@@ -62,6 +59,10 @@ fn main() -> Result<()> {
         },
         Command::Zellij => InspectorOutput {
             zellij: workspace_inspector::inspect_zellij()?,
+            ..empty
+        },
+        Command::Ides => InspectorOutput {
+            ides: workspace_inspector::inspect_ides()?,
             ..empty
         },
         Command::Where => unreachable!("handled above"),
@@ -115,14 +116,20 @@ fn print_pretty(output: &InspectorOutput) {
                         (Some(c), Some(r)) => format!(" [{}x{}]", c, r),
                         _ => String::new(),
                     };
+                    let uri_str = tab
+                        .uri
+                        .as_ref()
+                        .map(|u| format!("\n      {}", u))
+                        .unwrap_or_default();
                     println!(
-                        "    Tab {}: \"{}\"{}{}{}{}",
+                        "    Tab {}: \"{}\"{}{}{}{}{}",
                         i + 1,
                         tab.title,
                         tty_str,
                         shell_str,
                         cwd_str,
-                        size_str
+                        size_str,
+                        uri_str
                     );
                 }
             }
@@ -146,15 +153,21 @@ fn print_pretty(output: &InspectorOutput) {
 
                 for pane in &win.panes {
                     let active_str = if pane.active { " *" } else { "" };
+                    let uri_str = pane
+                        .uri
+                        .as_ref()
+                        .map(|u| format!("\n      {}", u))
+                        .unwrap_or_default();
                     println!(
-                        "    Pane {}: {} @ {} [{}x{}] (pid {}){}",
+                        "    Pane {}: {} @ {} [{}x{}] (pid {}){}{}",
                         pane.index,
                         pane.command,
                         pane.cwd,
                         pane.width,
                         pane.height,
                         pane.pid,
-                        active_str
+                        active_str,
+                        uri_str
                     );
                 }
             }
@@ -181,9 +194,14 @@ fn print_pretty(output: &InspectorOutput) {
 
                 for tab in &pane.tabs {
                     let active_str = if tab.is_active { " [active]" } else { "" };
+                    let uri_str = tab
+                        .uri
+                        .as_ref()
+                        .map(|u| format!("\n      {}", u))
+                        .unwrap_or_default();
                     println!(
-                        "    Tab {}: \"{}\" ({}){}",
-                        tab.tab_id, tab.title, tab.pane_type, active_str
+                        "    Tab {}: \"{}\" ({}){}{}",
+                        tab.tab_id, tab.title, tab.pane_type, active_str, uri_str
                     );
                 }
             }
@@ -207,11 +225,39 @@ fn print_pretty(output: &InspectorOutput) {
                     } else {
                         format!("{} ", pane.command)
                     };
+                    let uri_str = pane
+                        .uri
+                        .as_ref()
+                        .map(|u| format!("\n      {}", u))
+                        .unwrap_or_default();
                     println!(
-                        "    Pane {}: {}@ {} [{}x{}]{}",
-                        pane.pane_id, cmd_str, pane.cwd, pane.columns, pane.rows, focus_str
+                        "    Pane {}: {}@ {} [{}x{}]{}{}",
+                        pane.pane_id, cmd_str, pane.cwd, pane.columns, pane.rows, focus_str, uri_str
                     );
                 }
+            }
+            println!();
+        }
+    }
+
+    if !output.ides.is_empty() {
+        println!("== IDEs ==\n");
+        for ide in &output.ides {
+            let pid_str = ide
+                .pid
+                .map(|p| format!(" (pid {})", p))
+                .unwrap_or_default();
+            println!("{}{}", ide.app, pid_str);
+
+            for project in &ide.projects {
+                let active_str = if project.active { " [active]" } else { "" };
+                let uri_str = project
+                    .uri
+                    .as_ref()
+                    .map(|u| format!("\n    {}", u))
+                    .unwrap_or_default();
+                println!("  {}{}", project.name, active_str);
+                println!("    {}{}", project.path, uri_str);
             }
             println!();
         }
@@ -220,7 +266,8 @@ fn print_pretty(output: &InspectorOutput) {
     let all_empty = output.terminals.is_empty()
         && output.tmux.is_empty()
         && output.shelldon.is_empty()
-        && output.zellij.is_empty();
+        && output.zellij.is_empty()
+        && output.ides.is_empty();
 
     if all_empty {
         println!("No terminals or multiplexer sessions detected.");

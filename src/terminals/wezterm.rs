@@ -70,6 +70,7 @@ pub fn detect() -> Result<Option<TerminalEmulator>> {
 
         let tab = TerminalTab {
             title,
+            uri: None,
             tty: None,
             shell_pid: entry
                 .get("pane_id")

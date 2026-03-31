@@ -16,6 +16,7 @@
 //! }
 //! ```
 
+pub mod ides;
 mod locate;
 mod process;
 mod shelldon;
@@ -31,30 +32,53 @@ use anyhow::Result;
 
 /// Inspect all running terminals and multiplexer sessions.
 pub fn inspect_all() -> Result<InspectorOutput> {
-    Ok(InspectorOutput {
+    let mut output = InspectorOutput {
         terminals: terminals::detect_all()?,
         tmux: tmux::detect()?,
         shelldon: shelldon::detect()?,
         zellij: zellij::detect()?,
-    })
+        ides: ides::detect_all()?,
+    };
+    output.populate_uris();
+    Ok(output)
+}
+
+/// Inspect only running IDEs.
+pub fn inspect_ides() -> Result<Vec<IdeInstance>> {
+    let mut out = InspectorOutput::empty();
+    out.ides = ides::detect_all()?;
+    out.populate_uris();
+    Ok(out.ides)
 }
 
 /// Inspect only running terminal emulators.
 pub fn inspect_terminals() -> Result<Vec<TerminalEmulator>> {
-    terminals::detect_all()
+    let mut out = InspectorOutput::empty();
+    out.terminals = terminals::detect_all()?;
+    out.populate_uris();
+    Ok(out.terminals)
 }
 
 /// Inspect only tmux sessions.
 pub fn inspect_tmux() -> Result<Vec<TmuxSession>> {
-    tmux::detect()
+    let mut out = InspectorOutput::empty();
+    out.tmux = tmux::detect()?;
+    out.populate_uris();
+    Ok(out.tmux)
 }
 
 /// Inspect only shelldon instances.
 pub fn inspect_shelldon() -> Result<Vec<ShelldonInstance>> {
-    shelldon::detect()
+    let mut out = InspectorOutput::empty();
+    out.shelldon = shelldon::detect()?;
+    out.populate_uris();
+    Ok(out.shelldon)
 }
 
 /// Inspect only zellij sessions.
 pub fn inspect_zellij() -> Result<Vec<ZellijSession>> {
-    zellij::detect()
+    let mut out = InspectorOutput::empty();
+    out.zellij = zellij::detect()?;
+    out.populate_uris();
+    Ok(out.zellij)
 }

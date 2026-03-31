@@ -1,5 +1,77 @@
 use serde::{Deserialize, Serialize};
 
+impl InspectorOutput {
+    pub fn empty() -> Self {
+        Self {
+            terminals: vec![],
+            tmux: vec![],
+            shelldon: vec![],
+            zellij: vec![],
+            ides: vec![],
+        }
+    }
+
+    /// Populate `uri` fields on all leaf items.
+    pub fn populate_uris(&mut self) {
+        for term in &mut self.terminals {
+            let app = term.app.to_lowercase();
+            for win in &mut term.windows {
+                for (i, tab) in win.tabs.iter_mut().enumerate() {
+                    tab.uri = Some(format!(
+                        "workspace://{}/window:{}/tab:{}",
+                        app,
+                        win.id,
+                        i + 1
+                    ));
+                }
+            }
+        }
+
+        for session in &mut self.tmux {
+            for win in &mut session.windows {
+                for pane in &mut win.panes {
+                    pane.uri = Some(format!(
+                        "workspace://tmux:{}/window:{}/pane:{}",
+                        session.name, win.index, pane.index
+                    ));
+                }
+            }
+        }
+
+        for inst in &mut self.shelldon {
+            for pane in &mut inst.panes {
+                for tab in &mut pane.tabs {
+                    tab.uri = Some(format!(
+                        "workspace://shelldon:{}/tab:{}",
+                        inst.session_id, tab.tab_id
+                    ));
+                }
+            }
+        }
+
+        for session in &mut self.zellij {
+            for tab in &mut session.tabs {
+                for pane in &mut tab.panes {
+                    pane.uri = Some(format!(
+                        "workspace://zellij:{}/tab:{}/pane:{}",
+                        session.name, tab.position, pane.pane_id
+                    ));
+                }
+            }
+        }
+
+        for ide in &mut self.ides {
+            let app = ide.app.to_lowercase();
+            for project in &mut ide.projects {
+                project.uri = Some(format!(
+                    "workspace://{}/project:{}",
+                    app, project.name
+                ));
+            }
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct InspectorOutput {
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -10,6 +82,25 @@ pub struct InspectorOutput {
     pub shelldon: Vec<ShelldonInstance>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub zellij: Vec<ZellijSession>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ides: Vec<IdeInstance>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct IdeInstance {
+    pub app: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pid: Option<u32>,
+    pub projects: Vec<IdeProject>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct IdeProject {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    pub path: String,
+    pub active: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +120,8 @@ pub struct TerminalWindow {
 #[derive(Serialize, Deserialize)]
 pub struct TerminalTab {
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tty: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -62,6 +155,8 @@ pub struct TmuxWindow {
 #[derive(Serialize, Deserialize)]
 pub struct TmuxPane {
     pub index: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
     pub pid: u32,
     pub command: String,
     pub cwd: String,
@@ -91,6 +186,8 @@ pub struct ShelldonPane {
 #[derive(Serialize, Deserialize)]
 pub struct ShelldonTab {
     pub tab_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
     pub title: String,
     pub pane_type: String,
     pub is_active: bool,
@@ -116,6 +213,8 @@ pub struct ZellijPane {
     #[serde(skip)]
     pub tab_id: u32,
     pub pane_id: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
     pub title: String,
     pub command: String,
     pub cwd: String,

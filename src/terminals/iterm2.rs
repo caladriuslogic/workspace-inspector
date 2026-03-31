@@ -83,6 +83,7 @@ pub fn detect() -> Result<Option<TerminalEmulator>> {
 
         let tab = TerminalTab {
             title,
+            uri: None,
             tty: Some(tty),
             shell_pid,
             shell,
