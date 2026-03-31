@@ -1,16 +1,46 @@
 use std::process::Command;
 
 /// Get the current working directory of a process by PID.
-/// Uses /proc on Linux, falls back to lsof on other platforms.
+/// Uses /proc on Linux, wmic on Windows, falls back to lsof on other platforms.
 pub fn get_cwd(pid: u32) -> Option<String> {
     #[cfg(target_os = "linux")]
     {
-        std::fs::read_link(format!("/proc/{}/cwd", pid))
+        return std::fs::read_link(format!("/proc/{}/cwd", pid))
             .ok()
-            .and_then(|p| p.into_os_string().into_string().ok())
+            .and_then(|p| p.into_os_string().into_string().ok());
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
+    {
+        let output = Command::new("wmic")
+            .args([
+                "process",
+                "where",
+                &format!("processid={}", pid),
+                "get",
+                "WorkingDirectory",
+                "/format:value",
+            ])
+            .output()
+            .ok()?;
+
+        if !output.status.success() {
+            return None;
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            if let Some(val) = line.trim().strip_prefix("WorkingDirectory=") {
+                let dir = val.trim();
+                if !dir.is_empty() {
+                    return Some(dir.to_string());
+                }
+            }
+        }
+        return None;
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     {
         let output = Command::new("lsof")
             .args(["-p", &pid.to_string(), "-a", "-d", "cwd", "-Fn"])
@@ -71,8 +101,56 @@ pub fn get_shell_for_tty(tty: &str) -> Option<(u32, String)> {
 
 /// Find PIDs of a process by name.
 /// On macOS, tries System Events (AppleScript) first for GUI apps, then falls back to pgrep.
-/// On Linux, uses pgrep directly.
+/// On Windows, uses tasklist. On Linux, uses pgrep directly.
 pub fn find_pids_by_name(name: &str) -> Vec<u32> {
+    #[cfg(target_os = "windows")]
+    {
+        let exe_name = if name.ends_with(".exe") {
+            name.to_string()
+        } else {
+            format!("{}.exe", name)
+        };
+
+        let output = Command::new("tasklist")
+            .args([
+                "/fi",
+                &format!("imagename eq {}", exe_name),
+                "/fo",
+                "csv",
+                "/nh",
+            ])
+            .output();
+
+        let output = match output {
+            Ok(o) if o.status.success() => o,
+            _ => return vec![],
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut pids = Vec::new();
+
+        for line in stdout.lines() {
+            let line = line.trim();
+            if !line.starts_with('"') {
+                continue;
+            }
+            // CSV: "ImageName","PID",...
+            // Split on "," to extract the PID field.
+            let stripped = line
+                .strip_prefix('"')
+                .unwrap_or(line)
+                .trim_end_matches('"');
+            let fields: Vec<&str> = stripped.split("\",\"").collect();
+            if fields.len() >= 2 {
+                if let Ok(pid) = fields[1].parse::<u32>() {
+                    pids.push(pid);
+                }
+            }
+        }
+
+        return pids;
+    }
+
     #[cfg(target_os = "macos")]
     {
         // Try System Events first (macOS) — reliably finds GUI apps that pgrep misses
@@ -99,18 +177,21 @@ pub fn find_pids_by_name(name: &str) -> Vec<u32> {
         }
     }
 
-    // Use pgrep to find processes by name
-    let output = Command::new("pgrep")
-        .args(["-x", name])
-        .output();
+    // Use pgrep to find processes by name (Linux and macOS fallback)
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = Command::new("pgrep")
+            .args(["-x", name])
+            .output();
 
-    let output = match output {
-        Ok(o) if o.status.success() => o,
-        _ => return vec![],
-    };
+        let output = match output {
+            Ok(o) if o.status.success() => o,
+            _ => return vec![],
+        };
 
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .filter_map(|l| l.trim().parse::<u32>().ok())
-        .collect()
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter_map(|l| l.trim().parse::<u32>().ok())
+            .collect()
+    }
 }

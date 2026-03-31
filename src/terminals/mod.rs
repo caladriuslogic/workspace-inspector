@@ -11,6 +11,9 @@ mod iterm2;
 #[cfg(target_os = "linux")]
 mod gnome_terminal;
 
+#[cfg(target_os = "windows")]
+mod powershell;
+
 use anyhow::Result;
 
 use crate::types::TerminalEmulator;
@@ -48,6 +51,13 @@ pub fn detect_all() -> Result<Vec<TerminalEmulator>> {
     #[cfg(target_os = "linux")]
     {
         if let Ok(Some(t)) = gnome_terminal::detect() {
+            terminals.push(t);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(Some(t)) = powershell::detect() {
             terminals.push(t);
         }
     }
